@@ -4,11 +4,13 @@
 
 '''youtubeDownloader.py - Download video or playlist from Youtube
 
-Usage: python youtubeDownlaod.py <url> <type>
+Usage: python3 youtubeDownlaod.py <url> <type>
 
 Required:
     url         Video url or playlist url
     type        Video type for download, supports webm, mp4, 3gp, flv
+
+Notice: Python3 required for youtubeDownlaod.py
 
 Author: wayne (wayne@zanran.me)
 CreatedAt: Sun Jan 28 14:23:33 CST 2018
@@ -60,7 +62,8 @@ class Youtube(object):
     def __init__(self, url, media_type):
         self.url = url
         self.media_type = media_type
-        self.output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'youtube_download')
+        self.cur_path = os.path.dirname(os.path.abspath(__file__))
+        self.output_path = os.path.join(self.cur_path, 'youtube_download')
 
     def _get_video_info(self):
         pass
@@ -116,7 +119,7 @@ class Youtube(object):
                 break
 
         new_url = urljoin(self.url, new_url)
-        print('  Get youtube video info from: %s' % new_url)
+        #print('  Get youtube video info from: %s' % new_url)
         try:
             f = requests.get(new_url).text
             video_info = parse_qs(f)
@@ -130,7 +133,7 @@ class Youtube(object):
                     downloader_url = dt['url'][0]
                     break
             print('  Title: %s' % title)
-            print('  Download url: %s' % downloader_url)
+            #print('  Download url: %s' % downloader_url)
         except Exception as e:
             usage(e)
 
@@ -147,22 +150,19 @@ class Youtube(object):
             print('  Warning: File exists %s' % saved_file)
             return
 
-        res = requests.get(url)
+        res = requests.get(url, stream=True)
         max_file_bytes = int(res.headers['Content-Length'])
  
-        chunk_size = 1024*1024
+        chunk_size = 1024*1024*4
         downloaded_size = 0
         f = open(saved_file, 'wb')
         for data in res.iter_content(chunk_size):
             downloaded_size += len(data)
             message = '\r  Downloading %s .......... %02.f%%' % (file_name, downloaded_size / max_file_bytes * 100)
-            sys.stdout.write(message)
-            sys.stdout.flush()
+            print(message, end='')
             f.write(data)
-
-        sys.stdout.write('\n')
-        sys.stdout.flush()
         f.close()
+        print('\n  Saved file: %s' % os.path.relpath(saved_file, self.cur_path))
 
 
 def main():
@@ -171,6 +171,9 @@ def main():
 
     url = sys.argv[1]
     media_type = sys.argv[2]
+    if media_type not in ['webm', 'mp4', '3gp', 'flv']:
+        usage('Invalid media type')
+
     youtube = Youtube(url, media_type)
     youtube.start_downloader()
     print('------------------ Well done ------------------')
